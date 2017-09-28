@@ -1,26 +1,28 @@
 # BindingRedirects Doctor
 
 <!-- Replace this badge with your own-->
-[![Build status](https://ci.appveyor.com/api/projects/status/d1wl3gdb8hn8ngc3?svg=true)](https://ci.appveyor.com/project/robertmclaws/bindingredirectsdoctor)
+[![Build status](https://ci.appveyor.com/api/projects/status/hqw4epqailyy7arg?svg=true)](https://ci.appveyor.com/project/robertmclaws/packagereferenceupgrader)
 
 <!-- Update the VS Gallery link after you upload the VSIX-->
-Download this extension from the [VS Gallery](https://visualstudiogallery.msdn.microsoft.com/[GuidFromGallery])
-or get the [CI build](http://vsixgallery.com/extension/3d111d8d-7d15-4c6e-8ca3-494426e539ff/).
+Download this extension from the [VS GMarketplace](https://marketplace.visualstudio.com/items?itemName=CloudNimble.PackageReferenceUpgrader)
+or get the [CI build](http://vsixgallery.com/extension/bae2a4ae-be17-4f34-be32-f7f103918589/).
 
 ---------------------------------------
 
-Cleans and sorts the Assembly Binding Redirects in your projects to make them more manageable.
+Upgrades Visual Studio 2017 projects to use PackageReferences instead of packages.config, streamlining package resolution and eliminating errors.
 
 See the [change log](CHANGELOG.md) for changes and road map.
 
 ## Features
 
-- Assembly binding redirect cleanup.
+- Upgrades VS2017 projects by moving NuGet package references into the project file itself.
 
-### Assembly binding redirect cleanup
-- Removes duplicates (especially common with .NET Core / .NET Standard apps and mixed solutions).
-- Automatically uses the latest version of an assembly for any duplicate redirects.
-- Sorts the redirects for easy manageability (especially when using source control).
+### Project Upgrade:
+- Creates a backup of your packages.config and project file for safekeeping.
+- Cycles through your packages.config file for your existing references.
+- Removes the legacy package-relative DLL references.
+- Removes legacy .targets import nodes, as PackageReferences handle them transparently.
+- Removes legacy error conditions.
 
 ![Context Menu](art/context-menu.png)
 
