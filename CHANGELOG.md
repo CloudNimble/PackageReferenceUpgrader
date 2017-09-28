@@ -1,4 +1,4 @@
-# Road map
+# Roadmap
 
 - [x] A feature that has been completed
 - [ ] A feature that has NOT yet been completed

@@ -1,10 +1,10 @@
-# BindingRedirects Doctor
+# NuGet PackageReference Upgrader
 
 <!-- Replace this badge with your own-->
 [![Build status](https://ci.appveyor.com/api/projects/status/hqw4epqailyy7arg?svg=true)](https://ci.appveyor.com/project/robertmclaws/packagereferenceupgrader)
 
 <!-- Update the VS Gallery link after you upload the VSIX-->
-Download this extension from the [VS GMarketplace](https://marketplace.visualstudio.com/items?itemName=CloudNimble.PackageReferenceUpgrader)
+Download this extension from the [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=CloudNimble.PackageReferenceUpgrader)
 or get the [CI build](http://vsixgallery.com/extension/bae2a4ae-be17-4f34-be32-f7f103918589/).
 
 ---------------------------------------
