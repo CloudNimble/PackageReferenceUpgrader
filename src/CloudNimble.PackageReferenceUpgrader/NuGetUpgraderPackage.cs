@@ -4,18 +4,19 @@
 // </copyright>
 //------------------------------------------------------------------------------
 
-using System;
-using System.ComponentModel.Design;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
-using Microsoft.VisualStudio.Shell;
 using EnvDTE;
 using EnvDTE80;
-using System.Linq;
-using System.Xml.Linq;
-using System.Threading.Tasks;
-using System.IO;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace CloudNimble.PackageReferenceUpgrader
 {
@@ -39,6 +40,7 @@ namespace CloudNimble.PackageReferenceUpgrader
     [PackageRegistration(UseManagedResourcesOnly = true)]
     [InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)] // Info on this package for Help/About
     [ProvideMenuResource("Menus.ctmenu", 1)]
+    [ProvideAutoLoad(UIContextGuids80.SolutionExists)]
     [Guid(PackageGuids.guidNuGetUpgraderPackageString)]
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "pkgdef, VS and vsixmanifest are valid VS terms")]
     public sealed class NuGetUpgraderPackage : Package
@@ -71,7 +73,7 @@ namespace CloudNimble.PackageReferenceUpgrader
             Logger.Initialize(this, "PackageReference Upgrade");
 
             _commandService = (OleMenuCommandService)GetService(typeof(IMenuCommandService));
-            AddCommand(0x0100, (s, e) => { System.Threading.Tasks.Task.Run(() => FixBindingRedirects()); }, CheckFixCommandVisibility);
+            AddCommand(0x0100, (s, e) => { System.Threading.Tasks.Task.Run(() => UpgradePackagesConfig()); }, CheckUpgradeCommandVisibility);
         }
 
         #endregion
@@ -94,7 +96,7 @@ namespace CloudNimble.PackageReferenceUpgrader
         /// 
         /// </summary>
         /// <param name="sender"></param>
-        private void CheckFixCommandVisibility(object sender, EventArgs e)
+        private void CheckUpgradeCommandVisibility(object sender, EventArgs e)
         {
             OleMenuCommand button = (OleMenuCommand)sender;
             button.Visible = button.Enabled = false;
@@ -117,12 +119,12 @@ namespace CloudNimble.PackageReferenceUpgrader
         /// <summary>
         /// 
         /// </summary>
-        private void FixBindingRedirects()
+        private void UpgradePackagesConfig()
         {
 
             _isProcessing = true;
 
-            var files = ProjectHelpers.GetSelectedItems().Where(c => _fileNames.Contains(Path.GetFileName(ProjectHelpers.GetFullPath(c))));
+            var files = ProjectHelpers.GetSelectedItems().Where(c => _fileNames.Contains(Path.GetFileName(c.GetFullPath())));
 
             if (!files.Any())
             {
@@ -148,7 +150,7 @@ namespace CloudNimble.PackageReferenceUpgrader
                     var packageReferences = new XElement(defaultNs + "ItemGroup");
                     var packagesConfigItem = files.ElementAt(i);
                     var packagesConfigPath = packagesConfigItem.GetFullPath();
-                    var projectPath = packagesConfigItem.ContainingProject.GetFullPath();
+                    var projectPath = packagesConfigItem.ContainingProject.FileName;
 
                     //RWM: Start by backing up the files.
                     File.Copy(packagesConfigPath, $"{packagesConfigPath}.bak", true);
