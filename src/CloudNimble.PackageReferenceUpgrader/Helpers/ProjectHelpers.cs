@@ -58,6 +58,16 @@ namespace CloudNimble
         //    return Path.Combine(folder, "config");
         //}
 
+        public static string GetFullPath(this ProjectItem item)
+        {
+            return item.Properties.Item("FullPath").Value.ToString();
+        }
+
+        public static string GetFullPath(this Project project)
+        {
+            return project.Properties.Item("FullPath").Value.ToString();
+        }
+
         public static string GetRootFolder(this Project project)
         {
             if (string.IsNullOrEmpty(project?.FullName))

@@ -68,7 +68,7 @@ namespace CloudNimble.PackageReferenceUpgrader
             _dte = GetService(typeof(DTE)) as DTE2;
             Instance = this;
 
-            Logger.Initialize(this, "Upgrade to PackageReferences");
+            Logger.Initialize(this, "PackageReference Upgrade");
 
             _commandService = (OleMenuCommandService)GetService(typeof(IMenuCommandService));
             AddCommand(0x0100, (s, e) => { System.Threading.Tasks.Task.Run(() => FixBindingRedirects()); }, CheckFixCommandVisibility);
@@ -122,7 +122,7 @@ namespace CloudNimble.PackageReferenceUpgrader
 
             _isProcessing = true;
 
-            var files = ProjectHelpers.GetSelectedItemPaths().Where(c => _fileNames.Contains(Path.GetFileName(c)));
+            var files = ProjectHelpers.GetSelectedItems().Where(c => _fileNames.Contains(Path.GetFileName(ProjectHelpers.GetFullPath(c))));
 
             if (!files.Any())
             {
@@ -146,65 +146,65 @@ namespace CloudNimble.PackageReferenceUpgrader
                 Parallel.For(0, count, options, i =>
                 {
                     var packageReferences = new XElement(defaultNs + "ItemGroup");
-                    var fullPath = files.ElementAt(i);
+                    var packagesConfigItem = files.ElementAt(i);
+                    var packagesConfigPath = packagesConfigItem.GetFullPath();
+                    var projectPath = packagesConfigItem.ContainingProject.GetFullPath();
 
                     //RWM: Start by backing up the files.
-                    File.Copy(fullPath, fullPath + ".bak", true);
-                    Logger.Log($"Backup created for {fullPath}.");
+                    File.Copy(packagesConfigPath, $"{packagesConfigPath}.bak", true);
+                    File.Copy(projectPath, $"{projectPath}.bak", true);
+
+                    Logger.Log($"Backup created for {packagesConfigPath}.");
 
                     //RWM: Load the files.
-                    var config = XDocument.Load(fullPath);
+                    var project = XDocument.Load(projectPath);
+                    var packagesConfig = XDocument.Load(packagesConfigPath);
 
-                    var oldBindingRoot = config.Root.Descendants().FirstOrDefault(c => c.Name.LocalName == "assemblyBinding");
-                    var oldCount = oldBindingRoot.Elements().Count();
+                    //RWM: Get references to the stuff we're gonna get rid of.
+                    var oldReferences = project.Root.Descendants().Where(c => c.Name.LocalName == "Reference");
+                    var errors = project.Root.Descendants().Where(c => c.Name.LocalName == "Error");
+                    var targets = project.Root.Descendants().Where(c => c.Name.LocalName == "Import");
 
-                    foreach (var dependentAssembly in oldBindingRoot.Elements().ToList())
+                    foreach (var row in packagesConfig.Root.Elements().ToList())
                     {
-                        var assemblyIdentity = dependentAssembly.Element(assemblyBindingNs + "assemblyIdentity");
-                        var bindingRedirect = dependentAssembly.Element(assemblyBindingNs + "bindingRedirect");
+                        //RWM: Create the new PackageReference.
+                        packageReferences.Add(new XElement(defaultNs + "PackageReference",
+                            new XAttribute("Include", row.Attribute("id").Value),
+                            new XAttribute("Version", row.Attribute("version").Value)));
 
-                        if (newBindings.ContainsKey(assemblyIdentity.Attribute("name").Value))
-                        {
-                            Logger.Log($"Reference already exists for {assemblyIdentity.Attribute("name").Value}. Checking version...");
-                            //RWM: We've seen this assembly before. Check to see if we can update the version.
-                            var newBindingRedirect = newBindings[assemblyIdentity.Attribute("name").Value].Descendants(assemblyBindingNs + "bindingRedirect").First();
-                            var oldVersion = Version.Parse(newBindingRedirect.Attribute("newVersion").Value);
-                            var newVersion = Version.Parse(bindingRedirect.Attribute("newVersion").Value);
-
-                            if (newVersion > oldVersion)
-                            {
-                                newBindingRedirect.ReplaceWith(bindingRedirect);
-                                Logger.Log($"Version was newer. Binding updated.");
-                            }
-                            else
-                            {
-                                Logger.Log($"Version was the same or older. No update needed. Skipping.");
-                            }
-                        }
-                        else
-                        {
-                            newBindings.Add(assemblyIdentity.Attribute("name").Value, dependentAssembly);
-                        }
+                        //RWM: Remove the old Standard Reference.
+                        oldReferences.Where(c => c.Attribute("Include").Value.Split(new Char[] { ',' })[0].ToLower() == row.Attribute("id").Value.ToLower()).ToList()
+                            .ForEach(c => c.Remove());
+                        //RWM: Remove any remaining Standard References where the PackageId is in the HintPath.
+                        oldReferences.Where(c => c.Descendants().Any(d => d.Value.Contains(row.Attribute("id").Value))).ToList()
+                            .ForEach(c => c.Remove());
+                        //RWM: Remove any Error conditions for missing Package Targets.
+                        errors.Where(c => c.Attribute("Condition").Value.Contains(row.Attribute("id").Value)).ToList()
+                            .ForEach(c => c.Remove());
+                        //RWM: Remove any Package Targets.
+                        targets.Where(c => c.Attribute("Project").Value.Contains(row.Attribute("id").Value)).ToList()
+                            .ForEach(c => c.Remove());
                     }
 
-                    //RWM: Add the SortedDictionary items to our new assemblyBindingd element.
-                    foreach (var binding in newBindings)
+                    //RWM: Fix up the project file by adding PackageReferences, removing packages.config, and pulling NuGet-added Targets.
+                    project.Root.Elements().First(c => c.Name.LocalName == "ItemGroup").AddBeforeSelf(packageReferences);
+                    var packageConfigReference = project.Root.Descendants().FirstOrDefault(c => c.Name.LocalName == "None" && c.Attribute("Include").Value == "packages.config");
+                    if (packageConfigReference != null)
                     {
-                        assemblyBindings.Add(binding.Value);
+                        packageConfigReference.Remove();
                     }
 
-                    //RWM: Fix up the web.config by adding the new assemblyBindings and removing the old one.
-                    oldBindingRoot.AddBeforeSelf(assemblyBindings);
-                    oldBindingRoot.Remove();
-
-                    //RWM: Save the config file.
-                    if (_dte.SourceControl.IsItemUnderSCC(fullPath) && !_dte.SourceControl.IsItemCheckedOut(fullPath))
+                    var nugetBuildImports = project.Root.Descendants().FirstOrDefault(c => c.Name.LocalName == "Target" && c.Attribute("Name").Value == "EnsureNuGetPackageBuildImports");
+                    if (nugetBuildImports != null && nugetBuildImports.Descendants().Count(c => c.Name.LocalName == "Error") == 0)
                     {
-                        _dte.SourceControl.CheckOutItem(fullPath);
+                        nugetBuildImports.Remove();
                     }
-                    config.Save(fullPath);
 
-                    Logger.Log($"Update complete. Result: {oldCount} bindings before, {newBindings.Count} after.");
+                    //RWM: Save the project and delete Packages.config.
+                    File.WriteAllText(projectPath, project.ToString());
+                    File.Delete(packagesConfigPath);
+
+                    Logger.Log($"Update complete. Visual Studio will prompt you to reload the project now.");
                 });
             }
             catch (AggregateException agEx)
