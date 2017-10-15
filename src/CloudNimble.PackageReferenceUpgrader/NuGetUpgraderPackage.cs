@@ -202,8 +202,13 @@ namespace CloudNimble.PackageReferenceUpgrader
                         nugetBuildImports.Remove();
                     }
 
+                    //RWM: Upgrade the ToolsVersion so it can't be opened in VS2015 anymore.
+                    project.Root.Attribute("ToolsVersion").Value = "15.0";
+
                     //RWM: Save the project and delete Packages.config.
-                    File.WriteAllText(projectPath, project.ToString());
+                    ProjectHelpers.CheckFileOutOfSourceControl(projectPath);
+                    ProjectHelpers.CheckFileOutOfSourceControl(packagesConfigPath);
+                    project.Save(projectPath, SaveOptions.None);
                     File.Delete(packagesConfigPath);
 
                     Logger.Log($"Update complete. Visual Studio will prompt you to reload the project now.");
