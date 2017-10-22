@@ -12,6 +12,12 @@ download in the
 These are the changes to each version that has been released
 on the official Visual Studio extension gallery.
 
+## 1.0.1
+
+- [x] Fixed issue where ToolsVersion was not being upgraded [#1].
+- [x] Fixed issue where packages.config was deleted from the project and disk, but not source control [#2].
+- [x] Fixed issue where the project XML header was removed [#3].
+
 ## 1.0
 
 - [x] Initial release
