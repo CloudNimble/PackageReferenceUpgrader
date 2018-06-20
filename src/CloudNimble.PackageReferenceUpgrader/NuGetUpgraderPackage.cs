@@ -175,16 +175,19 @@ namespace CloudNimble.PackageReferenceUpgrader
                             new XAttribute("Version", row.Attribute("version").Value)));
 
                         //RWM: Remove the old Standard Reference.
-                        oldReferences.Where(c => c.Attribute("Include").Value.Split(new Char[] { ',' })[0].ToLower() == row.Attribute("id").Value.ToLower()).ToList()
+                        if (oldReferences != null) oldReferences.Where(c => c.Attribute("Include") != null).Where(c => c.Attribute("Include").Value.Split(new Char[] { ',' })[0].ToLower() == row.Attribute("id").Value.ToLower()).ToList()
                             .ForEach(c => c.Remove());
+
                         //RWM: Remove any remaining Standard References where the PackageId is in the HintPath.
-                        oldReferences.Where(c => c.Descendants().Any(d => d.Value.Contains(row.Attribute("id").Value))).ToList()
+                        if (oldReferences != null) oldReferences.Where(c => c.Descendants().Any(d => d.Value.Contains(row.Attribute("id").Value))).ToList()
                             .ForEach(c => c.Remove());
+
                         //RWM: Remove any Error conditions for missing Package Targets.
-                        errors.Where(c => c.Attribute("Condition").Value.Contains(row.Attribute("id").Value)).ToList()
+                        if (errors != null) errors.Where(c => c.Attribute("Condition") != null).Where(c => c.Attribute("Condition").Value.Contains(row.Attribute("id").Value)).ToList()
                             .ForEach(c => c.Remove());
+
                         //RWM: Remove any Package Targets.
-                        targets.Where(c => c.Attribute("Project").Value.Contains(row.Attribute("id").Value)).ToList()
+                        if (targets != null) targets.Where(c => c.Attribute("Project") != null).Where(c => c.Attribute("Project").Value.Contains(row.Attribute("id").Value)).ToList()
                             .ForEach(c => c.Remove());
                     }
 
