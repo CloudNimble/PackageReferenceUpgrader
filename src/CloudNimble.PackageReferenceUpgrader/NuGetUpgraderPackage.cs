@@ -184,8 +184,9 @@ namespace CloudNimble.PackageReferenceUpgrader
                         errors.Where(c => c.Attribute("Condition").Value.Contains(row.Attribute("id").Value)).ToList()
                             .ForEach(c => c.Remove());
                         //RWM: Remove any Package Targets.
-                        targets.Where(c => c.Attribute("Project").Value.Contains(row.Attribute("id").Value)).ToList()
-                            .ForEach(c => c.Remove());
+                        targets.Where(c => c.Attribute("Project") != null).ToList()
+                          .Where(c => c.Attribute("Project").Value.Contains(row.Attribute("id").Value)).ToList()
+                          .ForEach(c => c.Remove());
                     }
 
                     //RWM: Fix up the project file by adding PackageReferences, removing packages.config, and pulling NuGet-added Targets.
