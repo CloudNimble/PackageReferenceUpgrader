@@ -9,9 +9,9 @@ namespace CloudNimble.PackageReferenceUpgrader
     {
         public const string Id = "bae2a4ae-be17-4f34-be32-f7f103918589";
         public const string Name = "NuGet PackageReference Upgrader";
-        public const string Description = @"A VS2017 Extension that helps legacy apps migrate off of packages.config. ";
+        public const string Description = @"A VS Extension that helps legacy apps migrate off of packages.config.";
         public const string Language = "en-US";
-        public const string Version = "1.0";
+        public const string Version = "1.0.2";
         public const string Author = "Robert McLaws";
         public const string Tags = "web.config, assembly binding redirects, binding redirects, assembly binding";
     }
